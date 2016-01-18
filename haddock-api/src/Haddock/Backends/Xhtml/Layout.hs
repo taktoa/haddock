@@ -11,15 +11,6 @@
 -- Portability :  portable
 -----------------------------------------------------------------------------
 module Haddock.Backends.Xhtml.Layout (
-  miniBody,
-
-  divPackageHeader, divContent, divModuleHeader, divFooter,
-  divTableOfContents, divDescription, divSynopsis, divInterface,
-  divIndex, divAlphabet, divModuleList,
-
-  sectionName,
-  nonEmptySectionName,
-
   shortDeclList,
   shortSubDecls,
 
@@ -46,52 +37,10 @@ import Haddock.Types
 import Haddock.Utils (makeAnchorId)
 import qualified Data.Map as Map
 import Text.XHtml hiding ( name, title, p, quote )
+import qualified Text.XHtml as H
 
 import FastString            ( unpackFS )
 import GHC
-
---------------------------------------------------------------------------------
--- * Sections of the document
---------------------------------------------------------------------------------
-
-
-miniBody :: Html -> Html
-miniBody = body ! [identifier "mini"]
-
-
-sectionDiv :: String -> Html -> Html
-sectionDiv i = thediv ! [identifier i]
-
-
-sectionName :: Html -> Html
-sectionName = paragraph ! [theclass "caption"]
-
-
--- | Make an element that always has at least something (a non-breaking space).
--- If it would have otherwise been empty, then give it the class ".empty".
-nonEmptySectionName :: Html -> Html
-nonEmptySectionName c
-  | isNoHtml c = paragraph ! [theclass "caption empty"] $ spaceHtml
-  | otherwise  = paragraph ! [theclass "caption"]       $ c
-
-
-divPackageHeader, divContent, divModuleHeader, divFooter,
-  divTableOfContents, divDescription, divSynopsis, divInterface,
-  divIndex, divAlphabet, divModuleList
-    :: Html -> Html
-
-divPackageHeader    = sectionDiv "package-header"
-divContent          = sectionDiv "content"
-divModuleHeader     = sectionDiv "module-header"
-divFooter           = sectionDiv "footer"
-divTableOfContents  = sectionDiv "table-of-contents"
-divDescription      = sectionDiv "description"
-divSynopsis         = sectionDiv "synopsis"
-divInterface        = sectionDiv "interface"
-divIndex            = sectionDiv "index"
-divAlphabet         = sectionDiv "alphabet"
-divModuleList       = sectionDiv "module-list"
-
 
 --------------------------------------------------------------------------------
 -- * Declaration containers
@@ -122,7 +71,7 @@ divSubDecls cssClass captionName = maybe noHtml wrap
   where
     wrap = (subSection <<) . (subCaption +++)
     subSection = thediv ! [theclass $ unwords ["subs", cssClass]]
-    subCaption = paragraph ! [theclass "caption"] << captionName
+    subCaption = h4 << captionName
 
 
 subDlist :: Qualification -> [SubDecl] -> Maybe Html
@@ -132,7 +81,8 @@ subDlist qual decls = Just $ ulist << map subEntry decls
     subEntry (decl, mdoc, subs) =
       li <<
         (define ! [theclass "src"] << decl +++
-         docElement thediv << (fmap (docToHtml Nothing qual) mdoc +++ subs))
+         docElement thediv << (fmap (docToHtml Nothing qual) mdoc) +++
+         subs)
 
 
 subTable :: Qualification -> [SubDecl] -> Maybe Html
@@ -153,8 +103,8 @@ subTableSrc qual lnks splice decls = Just $ table << aboves (concatMap subRow de
   where
     subRow ((decl, mdoc, subs),L loc dn) =
       (td ! [theclass "src clearfix"] <<
-        (thespan ! [theclass "inst-left"] << decl)
-        <+> linkHtml loc dn
+        (thespan ! [theclass "inst-body"] << decl)
+        <+> (thespan ! [theclass "inst-links"] << linkHtml loc dn)
       <->
       docElement td << fmap (docToHtml Nothing qual) mdoc
       )
@@ -176,7 +126,7 @@ subAssociatedTypes = divSubDecls "associated-types" "Associated Types" . subBloc
 
 
 subConstructors :: Qualification -> [SubDecl] -> Html
-subConstructors qual = divSubDecls "constructors" "Constructors" . subTable qual
+subConstructors qual = divSubDecls "constructors" "Constructors" . subDlist qual
 
 
 subFields :: Qualification -> [SubDecl] -> Html
@@ -197,10 +147,10 @@ subInstances qual nm lnks splice = maybe noHtml wrap . instTable
     wrap = (subSection <<) . (subCaption +++)
     instTable = fmap (thediv ! collapseSection id_ True [] <<) . subTableSrc qual lnks splice
     subSection = thediv ! [theclass "subs instances"]
-    subCaption = paragraph ! collapseControl id_ True "caption" << "Instances"
+    subCaption = h4 ! collapseControl id_ True "caption" << "Instances"
     id_ = makeAnchorId $ "i:" ++ nm
 
- 
+
 subInstHead :: String -- ^ Instance unique id (for anchor generation)
             -> Html -- ^ Header content (instance name and type)
             -> Html
@@ -240,14 +190,16 @@ declElem = paragraph ! [theclass "src"]
 -- it adds a source and wiki link at the right hand side of the box
 topDeclElem :: LinksInfo -> SrcSpan -> Bool -> [DocName] -> Html -> Html
 topDeclElem lnks loc splice names html =
-    declElem << (html <+> (links lnks loc splice $ head names))
-        -- FIXME: is it ok to simply take the first name?
+    declElem << (
+      (thespan ! [theclass "decl-body"] << html) <+>
+      (thespan ! [theclass "decl-links"] << links lnks loc splice (head names)))
+      -- FIXME: is it ok to simply take the first name?
 
 -- | Adds a source and wiki link at the right hand side of the box.
 -- Name must be documented, otherwise we wouldn't get here.
 links :: LinksInfo -> SrcSpan -> Bool -> DocName -> Html
 links ((_,_,sourceMap,lineMap), (_,_,maybe_wiki_url)) loc splice (Documented n mdl) =
-   (srcLink <+> wikiLink)
+  (srcLink <+> wikiLink)
   where srcLink = let nameUrl = Map.lookup origPkg sourceMap
                       lineUrl = Map.lookup origPkg lineMap
                       mUrl | splice    = lineUrl
