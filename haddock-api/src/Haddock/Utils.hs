@@ -23,7 +23,6 @@ module Haddock.Utils (
   contentsHtmlFile, indexHtmlFile,
   moduleIndexFrameName, mainFrameName, synopsisFrameName,
   subIndexHtmlFile,
-  jsFile,
 
   -- * Anchor and URL utilities
   moduleNameUrl, moduleNameUrl', moduleUrl,
@@ -319,15 +318,6 @@ makeAnchorId (f:r) = escape isAlpha f ++ concatMap (escape isLegal) r
     isLegal '.' = True
     isLegal c = isAscii c && isAlphaNum c
        -- NB: '-' is legal in IDs, but we use it as the escape char
-
-
--------------------------------------------------------------------------------
--- * Files we need to copy from our $libdir
--------------------------------------------------------------------------------
-
-
-jsFile :: String
-jsFile    = "haddock-util.js"
 
 
 -------------------------------------------------------------------------------

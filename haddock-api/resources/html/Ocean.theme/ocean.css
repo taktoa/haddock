@@ -183,9 +183,6 @@ pre {
 .keyword { font-weight: normal; }
 .def { font-weight: bold; }
 
-@media print {
-  #footer { display: none; }
-}
 
 /* @end */
 
@@ -218,7 +215,7 @@ pre {
 #package-header a:hover { background: rgb(78,98,114); }
 
 #module-header .caption {
-  color: rgb(78,98,114);
+  color: 
   font-weight: bold;
   border-bottom: 1px solid #ddd;
 }
@@ -333,8 +330,6 @@ div#style-menu-holder {
   top: 10%;
   padding: 0;
   max-width: 75%;
-  /* Ensure that synopsis covers everything (including MathJAX markup) */
-  z-index: 1;
 }
 
 #synopsis .caption {
@@ -386,16 +381,21 @@ div#style-menu-holder {
 #interface h5 + div.top {
  	margin-top: 1em;
 }
-#interface .src .selflink,
-#interface .src .link {
+#interface p.src .link {
   float: right;
   color: #919191;
+  border-left: 1px solid #919191;
   background: #f0f0f0;
   padding: 0 0.5em 0.2em;
-  margin: 0 -0.5em 0 0;
+  margin: 0 -0.5em 0 0.5em;
 }
-#interface .src .selflink {
+
+#interface td.src .link {
+  float: right;
+  color: #919191;
   border-left: 1px solid #919191;
+  background: #f0f0f0;
+  padding: 0 0.5em 0.2em;
   margin: 0 -0.5em 0 0.5em;
 }
 

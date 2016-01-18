@@ -20,7 +20,7 @@ module Haddock.Backends.Xhtml.Utils (
   (<+>), (<=>), char,
   keyword, punctuate,
 
-  braces, brackets, pabrackets, parens, parenList, ubxParenList,
+  braces, brackets, pabrackets, parens, parenList, ubxParenList, ubxSumList,
   arrow, comma, dcolon, dot, darrow, equals, forallSymbol, quote, promoQuote,
 
   hsep, vcat,
@@ -177,6 +177,10 @@ ubxParenList :: [Html] -> Html
 ubxParenList = ubxparens . hsep . punctuate comma
 
 
+ubxSumList :: [Html]  -> Html
+ubxSumList = ubxparens . hsep . punctuate (toHtml " | ")
+
+
 ubxparens :: Html -> Html
 ubxparens h = toHtml "(#" +++ h +++ toHtml "#)"
 
@@ -212,23 +216,22 @@ groupId g = makeAnchorId ("g:" ++ g)
 -- | Attributes for an area that can be collapsed
 collapseSection :: String -> Bool -> String -> [HtmlAttr]
 collapseSection id_ state classes = [ identifier sid, theclass cs ]
-  where cs = unwords (words classes ++ [pick state "show" "hide"])
-        sid = "section." ++ id_
+  where
+    cs = unwords (words classes ++ ["collapser-target"]
+                  ++ if state then [] else ["collapsed"])
+    sid = "section." ++ id_
 
 -- | Attributes for an area that toggles a collapsed area
 collapseToggle :: String -> [HtmlAttr]
-collapseToggle id_ = [ strAttr "onclick" js ]
-  where js = "toggleSection('" ++ id_ ++ "')";
+collapseToggle id_
+  = [strAttr "onclick" ("haddock._toggleCollapsible('" ++ id_ ++ "')")]
 
 -- | Attributes for an area that toggles a collapsed area,
 -- and displays a control.
 collapseControl :: String -> Bool -> String -> [HtmlAttr]
-collapseControl id_ state classes =
-  [ identifier cid, theclass cs ] ++ collapseToggle id_
-  where cs = unwords (words classes ++ [pick state "collapser" "expander"])
-        cid = "control." ++ id_
-
-
-pick :: Bool -> a -> a -> a
-pick True  t _ = t
-pick False _ f = f
+collapseControl id_ state classes
+  = [ identifier cid, theclass cs ] ++ collapseToggle id_
+  where
+    cs = unwords (words classes ++ ["collapser"]
+                  ++ if state then [] else ["collapsed"])
+    cid = "control." ++ id_

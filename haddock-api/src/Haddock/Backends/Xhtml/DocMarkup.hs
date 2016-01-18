@@ -28,6 +28,7 @@ import Haddock.Doc (combineDocumentation, emptyMetaDoc,
                     metaDocAppend, metaConcat)
 
 import Text.XHtml hiding ( name, p, quote )
+import qualified Text.XHtml as H
 import Data.Maybe (fromMaybe)
 
 import GHC
@@ -41,8 +42,10 @@ parHtmlMarkup qual insertAnchors ppId = Markup {
   markupString               = toHtml,
   markupParagraph            = paragraph,
   markupAppend               = (+++),
-  markupIdentifier           = thecode . ppId insertAnchors,
-  markupIdentifierUnchecked  = thecode . ppUncheckedLink qual,
+  markupIdentifier           = \i -> thecode ! [theclass "inline id"]
+                                     << ppId insertAnchors i,
+  markupIdentifierUnchecked  = \i -> thecode ! [theclass "inline id unchecked"]
+                                     << ppUncheckedLink qual i,
   markupModule               = \m -> let (mdl,ref) = break (=='#') m
                                          -- Accomodate for old style
                                          -- foo\#bar anchors
@@ -53,11 +56,11 @@ parHtmlMarkup qual insertAnchors ppId = Markup {
   markupWarning              = thediv ! [theclass "warning"],
   markupEmphasis             = emphasize,
   markupBold                 = strong,
-  markupMonospaced           = thecode,
+  markupMonospaced           = thecode ! [theclass "inline"],
   markupUnorderedList        = unordList,
   markupOrderedList          = ordList,
   markupDefList              = defList,
-  markupCodeBlock            = pre,
+  markupCodeBlock            = (pre ! [theclass "block"]) . thecode,
   markupHyperlink            = \(Hyperlink url mLabel)
                                -> if insertAnchors
                                   then anchor ! [href url]
@@ -85,13 +88,14 @@ parHtmlMarkup qual insertAnchors ppId = Markup {
     makeHeader l _ = error $ "Somehow got a header level `" ++ show l ++ "' in DocMarkup!"
 
 
-    examplesToHtml l = pre (concatHtml $ map exampleToHtml l) ! [theclass "screen"]
+    examplesToHtml l = H.pre ! [H.theclass "block screen"]
+                       << concatHtml (map exampleToHtml l)
 
-    exampleToHtml (Example expression result) = htmlExample
-      where
-        htmlExample = htmlPrompt +++ htmlExpression +++ toHtml (unlines result)
-        htmlPrompt = (thecode . toHtml $ ">>> ") ! [theclass "prompt"]
-        htmlExpression = (strong . thecode . toHtml $ expression ++ "\n") ! [theclass "userinput"]
+    exampleToHtml (Example expression result)
+      = toHtml [ H.thecode ! [H.theclass "prompt"] << ">>> "
+               , H.thecode ! [H.theclass "input"] << H.toHtml (expression ++ "\n")
+               , H.toHtml (unlines result)
+               ]
 
 -- | We use this intermediate type to transform the input 'Doc' tree
 -- in an arbitrary way before rendering, such as grouping some
